@@ -17,6 +17,18 @@ namespace VRCX
         private static readonly ScreenshotMetadataDatabase CacheDatabase = new(Path.Join(Program.AppDataDirectory, "metadataCache.db"));
         private static readonly ConcurrentDictionary<string, ScreenshotMetadata?> MetadataCache = new();
 
+        // in-memory cache of DB-backed metadata; entries are re-derivable from
+        // metadataCache.db so the cache can simply be reset when it grows too large
+        private const int MetadataCacheMaxSize = 50000;
+
+        private static void AddToMetadataCache(string filePath, ScreenshotMetadata? metadata)
+        {
+            if (MetadataCache.Count >= MetadataCacheMaxSize)
+                MetadataCache.Clear();
+
+            MetadataCache.TryAdd(filePath, metadata);
+        }
+
         public enum ScreenshotSearchType
         {
             Username,
@@ -36,7 +48,7 @@ namespace VRCX
 
             var metadataStr = CacheDatabase.GetMetadataById(id);
             var metadataObj = metadataStr == null ? null : JsonConvert.DeserializeObject<ScreenshotMetadata>(metadataStr);
-            MetadataCache.TryAdd(filePath, metadataObj);
+            AddToMetadataCache(filePath, metadataObj);
 
             metadata = metadataObj;
             return true;

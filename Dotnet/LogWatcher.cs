@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -32,7 +31,9 @@ namespace VRCX
         private Thread? m_Thread;
         private DateTime tillDate;
         public bool VrcClosedGracefully;
-        private readonly ConcurrentQueue<string> m_LogQueue = new ConcurrentQueue<string>(); // for electron
+        // electron drains m_LogList incrementally via GetLogLines(); cap it so the
+        // buffer stays bounded when the consumer is paused (logged out, renderer hung)
+        private const int MaxLogListSize = 20000;
         private static readonly Regex CleanId = new("[^a-zA-Z0-9_\\-~:()]", RegexOptions.Compiled);
         private static readonly Regex CleanLocation = new("[/]", RegexOptions.Compiled);
 
@@ -287,18 +288,21 @@ namespace VRCX
             m_LogListLock.EnterWriteLock();
             try
             {
+#if !LINUX
                 if (!m_FirstRun)
                 {
                     var logLine = JsonSerializer.Serialize(item);
-#if LINUX
-                    m_LogQueue.Enqueue(logLine);
-#else
                     if (MainForm.Instance != null && MainForm.Instance.Browser != null)
                         MainForm.Instance.Browser.ExecuteScriptAsync("window?.$pinia?.gameLog.addGameLogEvent", logLine);
-#endif
                 }
+#endif
 
                 m_LogList.Add(item);
+
+                if (m_LogList.Count > MaxLogListSize)
+                {
+                    m_LogList.RemoveRange(0, m_LogList.Count - MaxLogListSize);
+                }
             }
             finally
             {
@@ -308,10 +312,23 @@ namespace VRCX
 
         public List<string> GetLogLines()
         {
-            // for electron
+            // for electron: drain pending entries from m_LogList as JSON lines so the
+            // list does not grow unbounded over a long session
             var logLines = new List<string>();
-            while (m_LogQueue.TryDequeue(out var logLine))
-                logLines.Add(logLine);
+            m_LogListLock.EnterWriteLock();
+            try
+            {
+                var count = Math.Min(m_LogList.Count, 1000);
+                for (var i = 0; i < count; i++)
+                    logLines.Add(JsonSerializer.Serialize(m_LogList[i]));
+
+                if (count > 0)
+                    m_LogList.RemoveRange(0, count);
+            }
+            finally
+            {
+                m_LogListLock.ExitWriteLock();
+            }
 
             return logLines;
         }

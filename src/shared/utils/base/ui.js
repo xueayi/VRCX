@@ -309,8 +309,13 @@ function updateTrustColorClasses(trustColor) {
 }
 
 async function refreshCustomCss() {
-    if (document.contains(document.getElementById('app-custom-style'))) {
-        document.getElementById('app-custom-style').remove();
+    const $existingStyle = document.getElementById('app-custom-style');
+    if ($existingStyle) {
+        const existingHref = $existingStyle.getAttribute('href');
+        if (existingHref?.startsWith('blob:')) {
+            URL.revokeObjectURL(existingHref);
+        }
+        $existingStyle.remove();
     }
     const customCss = await AppApi.CustomCss();
     if (customCss) {

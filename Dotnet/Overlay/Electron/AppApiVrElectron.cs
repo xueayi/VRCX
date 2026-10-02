@@ -21,12 +21,7 @@ namespace VRCX
 
         public override List<KeyValuePair<string, string>> GetExecuteVrOverlayFunctionQueue()
         {
-            var list = new List<KeyValuePair<string, string>>();
-            while (Program.VRCXVRInstance.GetExecuteVrOverlayFunctionQueue().TryDequeue(out var item))
-            {
-                list.Add(item);
-            }
-            return list;
+            return ((VRCXVRElectron)Program.VRCXVRInstance).DrainOverlayFunctionQueue();
         }
 
         public override void ToggleSystemMonitor(bool enabled)

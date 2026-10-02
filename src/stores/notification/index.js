@@ -194,6 +194,7 @@ export const useNotificationStore = defineStore('Notification', () => {
             }
         }
         notificationTable.value.data.push(ref);
+        sweepNotificationTable();
         const D = userStore.userDialog;
         if (D.visible === false || ref.type !== 'friendRequest' || ref.senderUserId !== D.id) {
             return;
@@ -356,6 +357,16 @@ export const useNotificationStore = defineStore('Notification', () => {
      */
     function appendNotificationTableEntry(entry) {
         notificationTable.value.data.push(entry);
+        sweepNotificationTable();
+    }
+
+    function sweepNotificationTable() {
+        // runtime pushes are only trimmed at login otherwise; keep the table bounded
+        // like the feed/gameLog stores do for long-running sessions
+        const j = notificationTable.value.data.length;
+        if (j > dbVars.maxTableSize + 50) {
+            notificationTable.value.data = notificationTable.value.data.slice(0, -50);
+        }
     }
 
     /**
@@ -436,6 +447,10 @@ export const useNotificationStore = defineStore('Notification', () => {
      */
     function queueMarkAsSeen(notificationId, version = 1) {
         if (seenIds.has(notificationId)) return;
+        if (seenIds.size > 10000) {
+            // dedupe guard only; dropping old ids just allows a redundant re-mark
+            seenIds.clear();
+        }
         seenIds.add(notificationId);
         seeQueue.push({ id: notificationId, version });
         processSeeQueue();
@@ -567,6 +582,7 @@ export const useNotificationStore = defineStore('Notification', () => {
         }
         database.addNotificationV2ToDatabase(ref);
         notificationTable.value.data.push(ref);
+        sweepNotificationTable();
         queueNotificationNoty(ref);
         sharedFeedStore.addEntry(ref);
     }

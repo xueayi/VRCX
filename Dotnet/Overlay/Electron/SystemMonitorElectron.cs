@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using NLog;
 
@@ -30,6 +31,14 @@ namespace VRCX
         {
             if (enabled == _enabled)
                 return;
+
+            if (enabled && !RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // the monitor reads /proc, which only exists on Linux; without this
+                // gate macOS would log a warning every second
+                logger.Warn("SystemMonitor is only supported on Linux");
+                return;
+            }
 
             _enabled = enabled;
             if (enabled)

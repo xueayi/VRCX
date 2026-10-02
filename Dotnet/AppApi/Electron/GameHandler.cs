@@ -2,12 +2,18 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace VRCX
 {
     public partial class AppApiElectron
     {
+        // wivrn-server detection needs a full process-table walk; cache the result so
+        // the 1 Hz update loop does not scan /proc (Linux) every second
+        private static DateTime _nextWivrnCheck = DateTime.MinValue;
+        private static bool _lastWivrnRunning;
+
         public override void OnProcessStateChanged(MonitoredProcess monitoredProcess)
         {
             // unused
@@ -22,12 +28,19 @@ namespace VRCX
 
         public override bool IsGameRunning()
         {
-            var processes = Process.GetProcessesByName("VRChat.exe");
-            var isGameRunning = processes.Length > 0;
-            foreach (var process in processes)
-                process.Dispose();
+            // Proton/Wine exposes the Windows process name; native clients use "VRChat"
+            foreach (var name in new[] { "VRChat.exe", "VRChat" })
+            {
+                var processes = Process.GetProcessesByName(name);
+                var isGameRunning = processes.Length > 0;
+                foreach (var process in processes)
+                    process.Dispose();
 
-            return isGameRunning;
+                if (isGameRunning)
+                    return true;
+            }
+
+            return false;
         }
 
         public override bool IsSteamVRRunning()
@@ -44,18 +57,30 @@ namespace VRCX
                     return true;
             }
 
-            // Check for wivrn-server (requires full scan)
-            var allProcesses = Process.GetProcesses();
-            var isRunning = allProcesses.Any(process => process.ProcessName.EndsWith("wivrn-server"));
-            foreach (var process in allProcesses)
-                process.Dispose();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // WiVRN is Linux-only, skip the full process-table scan on macOS
+                return false;
+            }
 
-            return isRunning;
+            var now = DateTime.UtcNow;
+            if (now.CompareTo(_nextWivrnCheck) >= 0)
+            {
+                _nextWivrnCheck = now.AddSeconds(5);
+                var allProcesses = Process.GetProcesses();
+                _lastWivrnRunning = allProcesses.Any(process => process.ProcessName.EndsWith("wivrn-server"));
+                foreach (var process in allProcesses)
+                    process.Dispose();
+            }
+
+            return _lastWivrnRunning;
         }
 
         public override int QuitGame()
         {
             var processes = Process.GetProcessesByName("VRChat.exe");
+            if (processes.Length == 0)
+                processes = Process.GetProcessesByName("VRChat");
             if (processes.Length == 1)
                 processes[0].Kill();
             foreach (var process in processes)

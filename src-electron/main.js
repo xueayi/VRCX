@@ -117,7 +117,8 @@ const OVERLAY_SHARED_HEIGHT = OVERLAY_WRIST_FRAME_HEIGHT + OVERLAY_HMD_FRAME_HEI
 const OVERLAY_SHARED_WIDTH = Math.max(OVERLAY_WRIST_FRAME_WIDTH, OVERLAY_HMD_FRAME_WIDTH);
 const OVERLAY_FRAME_SIZE = OVERLAY_SHARED_WIDTH * OVERLAY_SHARED_HEIGHT * 4;
 const OVERLAY_SHM_PATH = '/dev/shm/vrcx_overlay';
-const overlayFrameBuffer = Buffer.alloc(OVERLAY_FRAME_SIZE + 1);
+const overlayFrameFlagBuffer = Buffer.alloc(1);
+let lastOverlayWriteErrorLog = 0;
 let activeNotification = null;
 
 function createOverlayWindowShm() {
@@ -233,6 +234,7 @@ ipcMain.handle('app:restart', () => {
             options.execPath = appImagePath;
         }
         app.relaunch(options);
+        disposeOverlay();
         destroyTray();
         app.exit(0);
     } else {
@@ -446,13 +448,20 @@ function writeOverlayFrame(imageBuffer) {
     let fd;
     try {
         fd = fs.openSync(OVERLAY_SHM_PATH, 'r+');
-        overlayFrameBuffer[0] = 0; // not ready
-        imageBuffer.copy(overlayFrameBuffer, 1, 0, OVERLAY_FRAME_SIZE);
-        overlayFrameBuffer[0] = 1; // ready
-        fs.writeSync(fd, overlayFrameBuffer);
-        //console.log('Wrote frame to shared memory');
+        // seqlock for the .NET reader: flag 0 -> frame body -> flag 1, written in
+        // order. Writing the frame directly avoids copying ~6 MB into a staging
+        // buffer on every one of the 48 frames per second.
+        overlayFrameFlagBuffer[0] = 0; // not ready
+        fs.writeSync(fd, overlayFrameFlagBuffer, 0, 1, 0);
+        fs.writeSync(fd, imageBuffer, 0, OVERLAY_FRAME_SIZE, 1);
+        overlayFrameFlagBuffer[0] = 1; // ready
+        fs.writeSync(fd, overlayFrameFlagBuffer, 0, 1, 0);
     } catch (err) {
-        console.error('Error writing frame to shared memory:', err);
+        // at 48 fps an error would flood the log; throttle to one line per 5 s
+        if (Date.now() - lastOverlayWriteErrorLog > 5000) {
+            lastOverlayWriteErrorLog = Date.now();
+            console.error('Error writing frame to shared memory:', err);
+        }
     } finally {
         if (typeof fd === 'number') {
             fs.closeSync(fd);

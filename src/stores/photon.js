@@ -18,7 +18,7 @@ import {
 import { instanceRequest, userRequest } from '../api';
 import { photonEmojis, photonEventType } from '../shared/constants/photon';
 import { AppDebug } from '../services/appConfig';
-import { database } from '../services/database';
+import { database, dbVars } from '../services/database';
 
 import { applyAvatar } from '../coordinators/avatarCoordinator';
 import { showUserDialog, lookupUser, applyUser } from '../coordinators/userCoordinator';
@@ -446,7 +446,7 @@ export const usePhotonStore = defineStore('Photon', () => {
         photonLastChatBoxMsg.value = new Map();
         moderationEventQueue.value = new Map();
         if (photonEventTable.value.data.length > 0) {
-            photonEventTablePrevious.value.data = photonEventTable.value.data;
+            photonEventTablePrevious.value.data = photonEventTable.value.data.slice(0, dbVars.maxTableSize);
             photonEventTable.value.data = [];
         }
     }
@@ -567,6 +567,11 @@ export const usePhotonStore = defineStore('Photon', () => {
             ...input
         };
         photonEventTable.value.data.unshift(feed);
+        if (photonEventTable.value.data.length > dbVars.maxTableSize + 50) {
+            // bound the in-session table; a long single instance session would
+            // otherwise accumulate every join/leave/chatbox event for hours
+            photonEventTable.value.data.length = dbVars.maxTableSize;
+        }
         if (
             photonEventTableTypeOverlayFilter.value.length > 0 &&
             !photonEventTableTypeOverlayFilter.value.includes(feed.type)

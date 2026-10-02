@@ -314,42 +314,50 @@ export const useGalleryStore = defineStore('Gallery', () => {
      * @param printId
      */
     async function trySavePrintToFile(printId) {
-        const args = await vrcPlusImageRequest.getPrint({ printId });
-        const imageUrl = args.json?.files?.image;
-        if (!imageUrl) {
-            console.error('Print image URL is missing', args);
-            return;
-        }
-        const print = args.json;
-        const createdAt = getPrintLocalDate(print);
         try {
-            const owner = await queryRequest.fetch('user.dialog', {
-                userId: print.ownerId
-            });
-            console.log(
-                `Print spawned by ${owner?.json?.displayName} id:${print.id} note:${print.note} authorName:${print.authorName} at:${new Date().toISOString()}`
+            const args = await vrcPlusImageRequest.getPrint({ printId });
+            const imageUrl = args.json?.files?.image;
+            if (!imageUrl) {
+                console.error('Print image URL is missing', args);
+                return;
+            }
+            const print = args.json;
+            const createdAt = getPrintLocalDate(print);
+            try {
+                const owner = await queryRequest.fetch('user.dialog', {
+                    userId: print.ownerId
+                });
+                console.log(
+                    `Print spawned by ${owner?.json?.displayName} id:${print.id} note:${print.note} authorName:${print.authorName} at:${new Date().toISOString()}`
+                );
+            } catch (err) {
+                console.error(err);
+            }
+            const monthFolder = createdAt.toISOString().slice(0, 7);
+            const fileName = getPrintFileName(print);
+            const filePath = await AppApi.SavePrintToFile(
+                imageUrl,
+                advancedSettingsStore.ugcFolderPath,
+                monthFolder,
+                fileName
             );
-        } catch (err) {
-            console.error(err);
-        }
-        const monthFolder = createdAt.toISOString().slice(0, 7);
-        const fileName = getPrintFileName(print);
-        const filePath = await AppApi.SavePrintToFile(
-            imageUrl,
-            advancedSettingsStore.ugcFolderPath,
-            monthFolder,
-            fileName
-        );
-        if (filePath) {
-            console.log(`Print saved to file: ${monthFolder}\\${fileName}`);
-            if (advancedSettingsStore.cropInstancePrints) {
-                if (!(await AppApi.CropPrintImage(filePath))) {
-                    console.error('Failed to crop print image');
+            if (filePath) {
+                console.log(`Print saved to file: ${monthFolder}\\${fileName}`);
+                if (advancedSettingsStore.cropInstancePrints) {
+                    if (!(await AppApi.CropPrintImage(filePath))) {
+                        console.error('Failed to crop print image');
+                    }
                 }
             }
+        } finally {
+            // the queue worker interval must stop even when a request rejects,
+            // otherwise it keeps spinning on an empty queue forever
+            stopPrintQueueWorkerIfIdle();
         }
+    }
 
-        if (state.printQueue.length === 0) {
+    function stopPrintQueueWorkerIfIdle() {
+        if (state.printQueue.length === 0 && state.printQueueWorker) {
             workerTimers.clearInterval(state.printQueueWorker);
             state.printQueueWorker = null;
         }
@@ -496,58 +504,66 @@ export const useGalleryStore = defineStore('Gallery', () => {
      * @param userId
      */
     async function trySaveEmojiToFile(inventoryId, userId) {
-        const args = await queryRequest.fetch('userInventoryItem', {
-            inventoryId,
-            userId
-        });
-
-        if (args.json.itemType !== 'emoji' || !args.json.flags.includes('ugc')) {
-            // Not an emoji or ugc, skipping
-            return;
-        }
-
-        const userArgs = await queryRequest.fetch('user.dialog', {
-            userId: args.json.holderId
-        });
-        const displayName = userArgs.json?.displayName ?? '';
-
-        const emoji = args.json.metadata;
-        emoji.name = `${displayName}_${inventoryId}`;
-
-        const emojiFileName = getEmojiFileName(emoji);
-        const imageUrl = args.json.metadata?.imageUrl ?? args.json.imageUrl;
-        const createdAt = args.json.created_at;
-        const monthFolder = createdAt.slice(0, 7);
-
         try {
-            const filePath = await AppApi.SaveEmojiToFile(
-                imageUrl,
-                advancedSettingsStore.ugcFolderPath,
-                monthFolder,
-                emojiFileName
-            );
-            if (filePath) {
-                console.log(`Emoji saved to file: ${monthFolder}\\${emojiFileName}`);
-            }
-        } catch (e) {
-            if (e.message.includes('Could not find file')) {
-                modalStore
-                    .confirm({
-                        description:
-                            'Windows has blocked VRCX from creating files on your system. Please allow VRCX to create files to save emojis, would you like to see instructions on how to fix this?',
-                        title: 'Failed to create emoji folder',
-                        cancelText: 'Ignore'
-                    })
-                    .then(({ ok }) => {
-                        if (!ok) return;
-                        openExternalLink('https://www.youtube.com/watch?v=1mwmmCdA4D8&t=213s');
-                    })
-                    .catch(() => {});
-            }
-            console.error('Failed to save emoji to file:', e);
-        }
+            const args = await queryRequest.fetch('userInventoryItem', {
+                inventoryId,
+                userId
+            });
 
-        if (state.instanceInventoryQueue.length === 0) {
+            if (args.json.itemType !== 'emoji' || !args.json.flags.includes('ugc')) {
+                // Not an emoji or ugc, skipping
+                return;
+            }
+
+            const userArgs = await queryRequest.fetch('user.dialog', {
+                userId: args.json.holderId
+            });
+            const displayName = userArgs.json?.displayName ?? '';
+
+            const emoji = args.json.metadata;
+            emoji.name = `${displayName}_${inventoryId}`;
+
+            const emojiFileName = getEmojiFileName(emoji);
+            const imageUrl = args.json.metadata?.imageUrl ?? args.json.imageUrl;
+            const createdAt = args.json.created_at;
+            const monthFolder = createdAt.slice(0, 7);
+
+            try {
+                const filePath = await AppApi.SaveEmojiToFile(
+                    imageUrl,
+                    advancedSettingsStore.ugcFolderPath,
+                    monthFolder,
+                    emojiFileName
+                );
+                if (filePath) {
+                    console.log(`Emoji saved to file: ${monthFolder}\\${emojiFileName}`);
+                }
+            } catch (e) {
+                if (e.message.includes('Could not find file')) {
+                    modalStore
+                        .confirm({
+                            description:
+                                'Windows has blocked VRCX from creating files on your system. Please allow VRCX to create files to save emojis, would you like to see instructions on how to fix this?',
+                            title: 'Failed to create emoji folder',
+                            cancelText: 'Ignore'
+                        })
+                        .then(({ ok }) => {
+                            if (!ok) return;
+                            openExternalLink('https://www.youtube.com/watch?v=1mwmmCdA4D8&t=213s');
+                        })
+                        .catch(() => {});
+                }
+                console.error('Failed to save emoji to file:', e);
+            }
+        } finally {
+            // the queue worker interval must stop even when a request rejects or the
+            // item is skipped, otherwise it keeps spinning on an empty queue forever
+            stopInstanceInventoryQueueWorkerIfIdle();
+        }
+    }
+
+    function stopInstanceInventoryQueueWorkerIfIdle() {
+        if (state.instanceInventoryQueue.length === 0 && state.instanceInventoryQueueWorker) {
             workerTimers.clearInterval(state.instanceInventoryQueueWorker);
             state.instanceInventoryQueueWorker = null;
         }

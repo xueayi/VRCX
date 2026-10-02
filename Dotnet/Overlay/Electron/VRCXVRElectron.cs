@@ -56,6 +56,22 @@ namespace VRCX
         private MemoryMappedFile _overlayMMF;
         private MemoryMappedViewAccessor _overlayAccessor;
         private readonly ConcurrentQueue<KeyValuePair<string, string>> _overlayFunctionQueue = new ConcurrentQueue<KeyValuePair<string, string>>();
+        private readonly object _overlayFunctionQueueLock = new object();
+
+        // max pending overlay messages when the overlay renderer stops consuming
+        private const int MaxOverlayFunctionQueueSize = 200;
+
+        // state snapshots pushed by the update loop every second; only the newest
+        // value per function matters, so pending duplicates are coalesced
+        private static readonly HashSet<string> OverlayStateFunctions = new HashSet<string>
+        {
+            "configUpdate",
+            "lastLocationUpdate",
+            "nowPlayingUpdate",
+            "wristFeedUpdate",
+            "updateOnlineFriendCount",
+            "updateHudTimeout"
+        };
 
         static VRCXVRElectron()
         {
@@ -213,7 +229,21 @@ namespace VRCX
                         }
 
                         active = true;
-                        SetupTextures();
+                        try
+                        {
+                            SetupTextures();
+                        }
+                        catch (Exception ex)
+                        {
+                            // e.g. no GL context on macOS; without this catch the
+                            // unhandled exception on the overlay thread kills the process
+                            logger.Error(ex, "Failed to setup VR overlay textures");
+                            OpenVR.Shutdown();
+                            active = false;
+                            system = null;
+                            nextInit = DateTime.UtcNow.AddSeconds(30);
+                            continue;
+                        }
                         _isOverlayStarted = true;
                     }
 
@@ -850,15 +880,54 @@ namespace VRCX
             return _overlayFunctionQueue;
         }
 
+        public List<KeyValuePair<string, string>> DrainOverlayFunctionQueue()
+        {
+            var list = new List<KeyValuePair<string, string>>();
+            lock (_overlayFunctionQueueLock)
+            {
+                while (_overlayFunctionQueue.TryDequeue(out var item))
+                    list.Add(item);
+            }
+            return list;
+        }
+
         public override void ExecuteVrOverlayFunction(string function, string json)
         {
             if (!_isOverlayStarted)
             {
-                _overlayFunctionQueue.Clear();
+                lock (_overlayFunctionQueueLock)
+                {
+                    _overlayFunctionQueue.Clear();
+                }
                 return;
             }
 
-            _overlayFunctionQueue.Enqueue(new KeyValuePair<string, string>(function, json));
+            lock (_overlayFunctionQueueLock)
+            {
+                if (OverlayStateFunctions.Contains(function))
+                {
+                    // drop the stale snapshot of this function so a stalled or absent
+                    // overlay consumer cannot accumulate unbounded queued state
+                    var pending = new List<KeyValuePair<string, string>>(_overlayFunctionQueue.Count);
+                    while (_overlayFunctionQueue.TryDequeue(out var item))
+                    {
+                        if (item.Key != function)
+                            pending.Add(item);
+                    }
+                    foreach (var item in pending)
+                        _overlayFunctionQueue.Enqueue(item);
+                }
+
+                _overlayFunctionQueue.Enqueue(new KeyValuePair<string, string>(function, json));
+
+                // hard bound: discard oldest entries (notification events included) if
+                // the consumer never drains; unbounded growth here previously caused
+                // multi-GB leaks when the overlay window was missing (issue #1660)
+                while (_overlayFunctionQueue.Count > MaxOverlayFunctionQueueSize &&
+                       _overlayFunctionQueue.TryDequeue(out _))
+                {
+                }
+            }
         }
     }
 }
