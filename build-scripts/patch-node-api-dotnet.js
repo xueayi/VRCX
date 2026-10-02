@@ -61,10 +61,14 @@ function patchNodeApiDotNet(arch, platform) {
         platformName += '-arm64';
     }
 
-    const postBuildPath = path.join(
-        __dirname,
-        `./../build/${platformName}-unpacked/resources/app.asar.unpacked/node_modules/node-api-dotnet/init.js`
-    );
+    // win/linux unpack the app to build/<platform>-unpacked/resources/, while
+    // macOS keeps it inside the .app bundle: build/mac[-arm64]/VRCX.app/Contents/Resources/
+    const unpackedResources =
+        platform === 'darwin'
+            ? `./../build/${platformName}/VRCX.app/Contents/Resources/app.asar.unpacked/node_modules/node-api-dotnet/init.js`
+            : `./../build/${platformName}-unpacked/resources/app.asar.unpacked/node_modules/node-api-dotnet/init.js`;
+
+    const postBuildPath = path.join(__dirname, unpackedResources);
     console.log('Patching post-build init.js...');
     patchFile(postBuildPath);
 }
