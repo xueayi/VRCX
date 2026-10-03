@@ -1,7 +1,10 @@
 name: VRCX
 
 on:
-  - workflow_dispatch
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 concurrency:
   group: ${{ github.ref }}
@@ -323,3 +326,65 @@ jobs:
         with:
           name: VRCX-Zip
           path: 'VRCX_${{ needs.set_version.outputs.version }}.zip'
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      [
+        set_version,
+        build_dotnet_windows,
+        build_dotnet_linux,
+        build_dotnet_macos,
+        build_node,
+        build_macos
+      ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download distributable artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release
+          pattern: '{Cef-Setup,VRCX-Zip,Electron-AppImage-x64,Electron-AppImage-arm64,Electron-MacDmg-x64,Electron-MacDmg-arm64}'
+          merge-multiple: true
+
+      - name: List release files
+        run: ls -la release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'VRCX ${{ needs.set_version.outputs.version }} — community build with Linux/macOS memory-leak fixes'
+          prerelease: false
+          body: |
+            **Unofficial community build** of [vrcx-team/VRCX](https://github.com/vrcx-team/VRCX) with Linux/macOS memory-leak fixes and mac arm64 startup fixes. **Not signed or notarized by Apple.**
+
+            **非官方社区构建**，基于上游 2026.09.16，包含 Linux/macOS 内存泄漏修复与 mac arm64 启动修复。**未经 Apple 签名与公证。**
+
+            ---
+
+            ## macOS 首次打开（必读 / Read this first）
+
+            本构建未做 Apple 签名与公证，下载的 dmg 首次打开会被 Gatekeeper 拦截，提示 **"VRCX 已损坏，无法打开"**。这是 macOS 对未签名应用的正常拦截，不是文件真的坏了。将 VRCX 拖入「应用程序」后，在终端执行一次：
+
+            ```bash
+            xattr -cr /Applications/VRCX.app
+            ```
+
+            然后正常打开即可。也可以在 **系统设置 → 隐私与安全性** 里点击「仍要打开」。
+
+            - Apple Silicon（M 系列）→ `VRCX_*_arm64.dmg`
+            - Intel → `VRCX_*_x64.dmg`
+
+            ## Windows
+
+            Setup.exe 使用 Azure Trusted Signing 签名（与上游一致）。
+
+            ## 修复内容 / Fixes in this build
+
+            - LogWatcher 游戏日志、VR overlay 函数队列、通知表、gallery 定时器、photon 事件表等多处内存泄漏（长驻托盘场景数十 MB/天的增长）
+            - macOS arm64 启动即崩（缺少 SQLite 原生库）与 .NET 宿主路径补丁缺失
+            - macOS 原生 VRChat 进程检测、进程扫描节流；Linux 重启后共享内存泄漏
+          files: |
+            release/*
