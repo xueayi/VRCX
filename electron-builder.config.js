@@ -4,7 +4,9 @@
  * @see https://www.electron.build/configuration/configuration
  */
 module.exports = {
-    appId: 'app.vrcx',
+    // fork-specific bundle id: keeps TCC (local network) decisions and other
+    // per-app system state separate from upstream builds
+    appId: 'site.xueayi.vrcx',
     productName: 'VRCX',
     icon: 'images/VRCX.png',
     files: [

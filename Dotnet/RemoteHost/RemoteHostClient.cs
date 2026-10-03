@@ -83,6 +83,8 @@ namespace VRCX
             {
                 Stop();
 
+                PreloadAssemblies();
+
                 m_Address = address;
                 m_Username = username;
                 m_Password = password;
@@ -153,6 +155,38 @@ namespace VRCX
             return JsonSerializer.Serialize(payload);
         }
 
+        /// <summary>
+        /// node-api-dotnet resolves NuGet dependency assemblies through the JS thread;
+        /// the poller thread has no JS scope, so any assembly it loads for the first
+        /// time throws JSInvalidThreadAccessException. Pre-load SSH.NET's dependency
+        /// chain here while we are still on the JS thread — later binds hit the
+        /// assembly load context cache.
+        /// </summary>
+        private static void PreloadAssemblies()
+        {
+            var dir = Path.GetDirectoryName(typeof(RemoteHostClient).Assembly.Location);
+            if (string.IsNullOrEmpty(dir))
+            {
+                return;
+            }
+
+            foreach (var dll in new[] { "BouncyCastle.Cryptography.dll", "System.Formats.Asn1.dll", "Renci.SshNet.dll" })
+            {
+                var path = Path.Join(dir, dll);
+                try
+                {
+                    if (File.Exists(path))
+                    {
+                        System.Reflection.Assembly.LoadFrom(path);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warn(ex, "Preloading {0} failed", dll);
+                }
+            }
+        }
+
         private void ThreadLoop()
         {
             var backoffSeconds = 5;
@@ -189,10 +223,10 @@ namespace VRCX
                 }
                 catch (Exception ex)
                 {
-                    m_LastError = ex.Message;
+                    m_LastError = ex.InnerException?.Message ?? ex.Message;
                     m_Connected = false;
                     m_GameRunning = false;
-                    logger.Warn("Remote host poll failed, retrying in {0}s: {1}", backoffSeconds, ex.Message);
+                    logger.Warn(ex, "Remote host poll failed, retrying in {0}s", backoffSeconds);
                 }
 
                 if (!m_Enabled)
