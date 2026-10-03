@@ -139,6 +139,27 @@
             </SettingsItem>
         </SettingsGroup>
 
+        <SettingsGroup :title="t('view.settings.general.fork_notice.header')">
+            <div class="flex flex-col gap-2 text-sm text-muted-foreground">
+                <p class="m-0">
+                    {{ t('view.settings.general.fork_notice.description') }}
+                </p>
+                <p class="m-0">
+                    <a class="cursor-pointer" @click="openExternalLink('https://github.com/xueayi/VRCX')">
+                        {{ t('view.settings.general.fork_notice.fork_repo') }}
+                    </a>
+                    &middot;
+                    <a class="cursor-pointer" @click="openExternalLink('https://github.com/xueayi/VRCX/releases')">
+                        {{ t('view.settings.general.fork_notice.releases') }}
+                    </a>
+                    &middot;
+                    <a class="cursor-pointer" @click="openExternalLink('https://github.com/vrcx-team/VRCX')">
+                        {{ t('view.settings.general.fork_notice.upstream') }}
+                    </a>
+                </p>
+            </div>
+        </SettingsGroup>
+
         <SettingsGroup :title="t('view.settings.general.contributors.header')">
             <div>
                 <img

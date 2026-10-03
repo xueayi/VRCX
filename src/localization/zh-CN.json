@@ -882,6 +882,13 @@
                 "friend_requests": {
                     "header": "自动拒绝垃圾好友申请",
                     "header_tooltip": "自动拒绝你从未见过的用户（从未出现在同一个房间中）的申请。"
+                },
+                "fork_notice": {
+                    "header": "关于本构建",
+                    "description": "本应用是 vrcx-team/VRCX 的社区 fork，由 xueayi 维护，包含 Linux/macOS 内存泄漏修复、mac arm64（Apple Silicon）启动修复与自动化发布。上游功能与文档不受影响，官方项目请见上游仓库。",
+                    "fork_repo": "Fork 仓库",
+                    "releases": "发布与更新日志",
+                    "upstream": "上游：vrcx-team/VRCX"
                 }
             },
             "appearance": {

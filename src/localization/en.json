@@ -882,6 +882,13 @@
                 "friend_requests": {
                     "header": "Auto-decline Spam Friend Requests",
                     "header_tooltip": "Auto-decline requests from users you haven't met (never been in the same instance)."
+                },
+                "fork_notice": {
+                    "header": "About this build",
+                    "description": "Community fork of vrcx-team/VRCX maintained by xueayi. This build ships Linux/macOS memory-leak fixes, mac arm64 (Apple Silicon) startup fixes and automated releases. Upstream features and documentation are unaffected; see the upstream repository for the official project.",
+                    "fork_repo": "Fork repository",
+                    "releases": "Releases & changelog",
+                    "upstream": "Upstream: vrcx-team/VRCX"
                 }
             },
             "appearance": {

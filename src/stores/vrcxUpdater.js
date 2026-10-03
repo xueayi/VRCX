@@ -213,9 +213,42 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
     async function openChangeLogDialogOnly() {
         changeLogDialog.value.visible = true;
         if (!changeLogDialog.value.buildName || !changeLogDialog.value.changeLog) {
-            await checkForVRCXUpdate();
+            // this is a community fork: show this fork's release notes as the
+            // changelog instead of the upstream vrcx.app update feed
+            const loaded = await loadForkChangeLog();
+            if (!loaded) {
+                await checkForVRCXUpdate();
+            }
         }
     }
+
+    /**
+     * Loads the latest release of the fork repository into the changelog dialog.
+     *
+     * @returns {boolean} true when a fork release was loaded
+     */
+    async function loadForkChangeLog() {
+        try {
+            const response = await webApiService.execute({
+                url: 'https://api.github.com/repos/xueayi/VRCX/releases/latest',
+                method: 'GET'
+            });
+            if (response.status !== 200) {
+                return false;
+            }
+            const json = JSON.parse(response.data);
+            if (!(json === Object(json) && json.name && json.body)) {
+                return false;
+            }
+            changeLogDialog.value.buildName = `${json.name} (xueayi/VRCX)`;
+            changeLogDialog.value.changeLog = changeLogRemoveLinks(json.body);
+            return true;
+        } catch (error) {
+            console.error('Failed to load fork changelog', error);
+            return false;
+        }
+    }
+
     async function loadVrcxId() {
         if (!vrcxId.value) {
             vrcxId.value = crypto.randomUUID();
