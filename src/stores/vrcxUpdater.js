@@ -338,11 +338,17 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
         pendingVRCXUpdate.value = false;
         logWebRequest('[EXTERNAL GET]', url, `(${response.status})`, json);
         if (json === Object(json) && json.name && json.published_at) {
-            changeLogDialog.value.buildName = json.name;
-            changeLogDialog.value.changeLog = changeLogRemoveLinks(json.body);
             const releaseName = json.name;
             setLatestAppVersion(releaseName);
             VRCXUpdateDialog.value.updatePendingIsLatest = false;
+            // show THIS fork's release notes in the changelog dialog; the upstream
+            // feed above still drives update detection
+            void loadForkChangeLog().then((loaded) => {
+                if (!loaded) {
+                    changeLogDialog.value.buildName = json.name;
+                    changeLogDialog.value.changeLog = changeLogRemoveLinks(json.body);
+                }
+            });
             if (autoUpdateVRCX.value === 'Off') {
                 return true;
             }

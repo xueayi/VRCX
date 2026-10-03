@@ -73,7 +73,12 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SourceGear.sqlite3" Version="3.53.4" />
-    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <!-- pinned: SSH.NET 2025+ binds Microsoft.Extensions.Logging.Abstractions
+         8.0.0.0 while Websocket.Client unifies the bundled DLL to 10.x and this
+         host does no deps.json unification, so the load fails at runtime. The
+         two 2024.2.0 advisories (GHSA-mggc-4xg6-vcxf / GHSA-q939-rpr3-3284)
+         affect ScpClient only, which RemoteHostClient never uses. -->
+    <PackageReference Include="SSH.NET" Version="2024.2.0" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
     <!-- System.Data.SQLite 1.x ships native interop only for win-x86/x64, linux-x64
          and osx-x64; the 2.x line P/Invokes e_sqlite3 from SourceGear.sqlite3, which
