@@ -47,7 +47,18 @@ namespace VRCX
 
         public void Init()
         {
+#if LINUX
+            // remote mode: start the poller from persisted settings before choosing
+            // the directory; LogWatcher then tails the local mirror instead
+            RemoteHostClient.Instance.StartFromConfig();
+
+            // remote mode: LogWatcher watches the local mirror fed by RemoteHostClient
+            var logPath = RemoteHostClient.Instance.Enabled
+                ? RemoteHostClient.MirrorLogDirectory
+                : Program.AppApiInstance.GetVRChatAppDataLocation();
+#else
             var logPath = Program.AppApiInstance.GetVRChatAppDataLocation();
+#endif
             m_LogDirectoryInfo = new DirectoryInfo(logPath);
             m_LogContextMap = new Dictionary<string, LogContext>();
             m_LogListLock = new ReaderWriterLockSlim();
@@ -57,6 +68,22 @@ namespace VRCX
                 IsBackground = true
             };
             m_Thread.Start();
+        }
+
+        /// <summary>
+        /// Re-creates the watcher against the current log directory (used when the
+        /// remote-host configuration changes at runtime).
+        /// </summary>
+        public void Restart()
+        {
+            var threadActiveBackup = threadActive;
+            Exit();
+            Init();
+            if (threadActiveBackup)
+            {
+                // keep the live-push behavior the frontend configured before
+                threadActive = true;
+            }
         }
 
         public void Exit()

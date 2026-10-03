@@ -225,7 +225,7 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
     /**
      * Loads the latest release of the fork repository into the changelog dialog.
      *
-     * @returns {boolean} true when a fork release was loaded
+     * @returns {Promise<boolean>} true when a fork release was loaded
      */
     async function loadForkChangeLog() {
         try {

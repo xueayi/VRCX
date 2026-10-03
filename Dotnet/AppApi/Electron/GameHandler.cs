@@ -28,6 +28,12 @@ namespace VRCX
 
         public override bool IsGameRunning()
         {
+            // remote mode: VRChat runs on another machine; use the polled SSH signal
+            if (RemoteHostClient.Instance.Enabled)
+            {
+                return RemoteHostClient.Instance.IsGameRunning;
+            }
+
             // Proton/Wine exposes the Windows process name; native clients use "VRChat"
             foreach (var name in new[] { "VRChat.exe", "VRChat" })
             {

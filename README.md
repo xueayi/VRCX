@@ -34,6 +34,7 @@ All changes are on top of upstream `master` (currently based on `2026.09.16`):
 
 ### Added
 
+- **Remote VRChat host**: VRChat runs on one machine in the LAN while VRCX runs on another — enter the host's SSH account in Settings and its game log is tailed over SFTP into a local mirror, so join/leave tracking, co-play time, sessions and notifications all keep working. Game-running state is polled remotely too. (The upstream Windows client assumes VRCX and VRChat share a machine.)
 - **Automated releases**: pushing a `v*` tag runs the full multi-platform build on GitHub Actions and publishes a GitHub Release automatically (including the macOS Gatekeeper bypass instructions — these builds are unsigned, see the release notes).
 - In-app links (GitHub button, changelog dialog, About section in Settings) point to this fork; upstream attribution kept everywhere.
 
@@ -107,6 +108,7 @@ MIT — same as upstream. All credit for VRCX goes to the upstream authors ([pyp
 
 ### 新增
 
+- **远程 VRChat 主机**：VRChat 跑在局域网另一台电脑上时，在设置里填入主机的 SSH 账户即可通过 SFTP 同步其游戏日志 —— 进退房记录、共同游玩时间、会话视图、通知等全部照常工作，游戏运行状态也远程轮询（上游 Windows 版假定 VRCX 与 VRChat 同机）。
 - **自动发布**：推送 `v*` 标签即在 GitHub Actions 全平台构建并自动发布 Release（附 macOS Gatekeeper 绕过说明 —— 本构建不签名，见 Release 页说明）。
 - 应用内链接（GitHub 按钮、更新日志对话框、设置里的"关于"区块）指向本 fork，同时保留上游署名。
 
