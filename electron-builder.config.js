@@ -85,7 +85,14 @@ module.exports = {
         icon: 'images/VRCX.png',
         category: 'public.app-category.utilities',
         executableName: 'VRCX',
-        minimumSystemVersion: '14.0'
+        minimumSystemVersion: '14.0',
+        // required on macOS 15+: without this key the local network consent
+        // prompt never appears and LAN access is silently denied (the remote
+        // VRChat host log tailing needs it)
+        extendInfo: {
+            NSLocalNetworkUsageDescription:
+                'VRCX connects to your VRChat host on the local network (SSH) to sync the game log. / VRCX 需要访问局域网内的 VRChat 主机（SSH）以同步游戏日志。'
+        }
     },
     toolsets: {
         appimage: '1.0.3'
