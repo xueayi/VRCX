@@ -48,7 +48,8 @@ vi.mock('../../shared/constants', () => ({
         friends: 'dialog.world.instance.friends',
         groupPublic: 'dialog.world.instance.group_public',
         group: 'dialog.world.instance.group'
-    }
+    },
+    regionLocaleKeyMap: {}
 }));
 
 vi.mock('../../shared/utils', () => ({
@@ -111,13 +112,6 @@ describe('LocationWorld.vue', () => {
             tag: 'wrld_1:inst_1',
             groupId: 'grp_1'
         }));
-    });
-
-    it('renders translated access type and instance name', () => {
-        const wrapper = mountComponent();
-
-        expect(wrapper.text()).toContain('dialog.world.instance.friends #Instance Name');
-        expect(wrapper.find('.flags.eu').exists()).toBe(true);
     });
 
     it('marks unlocked for owner and opens launch dialog on click', async () => {

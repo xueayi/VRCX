@@ -1,3 +1,5 @@
+import { createDefaultWorldRef } from './worldTransforms';
+
 /**
  * Compute which content settings are disabled for an instance.
  *
@@ -22,8 +24,8 @@ export function computeDisabledContentSettings(contentSettings, settingsList) {
 /**
  * Create a default instance ref object.
  *
- * @param {object} json - API response to merge
- * @returns {object}
+ * @param {Partial<import('@/types/vrcx').VrcxInstance>} json - API response to merge
+ * @returns {import('@/types/vrcx').VrcxInstance}
  */
 export function createDefaultInstanceRef(json) {
     return {
@@ -32,7 +34,8 @@ export function createDefaultInstanceRef(json) {
         instanceId: '',
         name: '',
         worldId: '',
-        type: '',
+        type: 'public',
+        accessType: '',
         ownerId: '',
         tags: [],
         active: false,
@@ -44,18 +47,18 @@ export function createDefaultInstanceRef(json) {
         userCount: 0,
         queueEnabled: false, // only present with group instance type
         queueSize: 0, // only present when queuing is enabled
-        platforms: {},
+        platforms: { android: 0, standalonewindows: 0 },
         gameServerVersion: 0,
         hardClose: null, // boolean or null
         closedAt: null, // string or null
         secureName: '',
         shortName: '',
-        world: {},
+        world: createDefaultWorldRef({}),
         users: [], // only present when you're the owner
         clientNumber: '',
         contentSettings: {},
-        photonRegion: '',
-        region: '',
+        photonRegion: 'unknown',
+        region: 'unknown',
         canRequestInvite: false,
         permanent: false,
         private: '', // part of instance tag
@@ -68,6 +71,21 @@ export function createDefaultInstanceRef(json) {
         instancePersistenceEnabled: null,
         playerPersistenceEnabled: null,
         ageGate: null,
+        calendarEntryId: null, // only present when instance is linked to a group event
+        friends: '', // part of instance tag
+        creatorId: null,
+        categoryId: null,
+        description: null,
+        displayVibeId: null,
+        vibeIds: [],
+        dominantLanguage: '',
+        languages: [],
+        languagesIso639: [],
+        languageRatio: {},
+        creationLanguages: [],
+        disabledPropAbilities: [],
+        minimumAvatarPerformance: null,
+        userIcons: [],
         // VRCX
         $fetchedAt: '',
         $disabledContentSettings: [],

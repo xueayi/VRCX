@@ -94,6 +94,11 @@ module.exports = {
                 'VRCX connects to your VRChat host on the local network (SSH) to sync the game log. / VRCX 需要访问局域网内的 VRChat 主机（SSH）以同步游戏日志。'
         }
     },
+    win: {
+        artifactName: 'VRCX_Version.${ext}',
+        target: ['nsis'],
+        icon: 'images/VRCX.ico'
+    },
     toolsets: {
         appimage: '1.0.3'
     }

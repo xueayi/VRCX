@@ -13,7 +13,7 @@ import { ArrowUpDown, Copy, ExternalLink, FileText, Trash2, X } from 'lucide-vue
 import { storeToRefs } from 'pinia';
 
 import { copyToClipboard, formatDateFilter, openExternalLink } from '../../shared/utils';
-import { i18n } from '../../plugins';
+import { i18n } from '../../plugins/i18n';
 import { useInstanceStore, useUiStore } from '../../stores';
 import { lookupUser } from '../../coordinators/userCoordinator';
 import { showWorldDialog } from '../../coordinators/worldCoordinator';
@@ -170,7 +170,7 @@ export const createColumns = ({ getCreatedAt, onDelete, onDeletePrompt }) => {
                 }
 
                 if (original.type === 'VideoPlay') {
-                    const showLink = original.videoId !== 'LSMedia' && original.videoId !== 'PopcornPalace';
+                    const showLink = original.videoId !== 'PopcornPalace' && !!original.videoUrl;
                     const label = original.videoName || original.videoUrl;
                     const tooltipText = original.videoId ? `${original.videoId}: ${label}` : label;
                     return (
@@ -202,7 +202,9 @@ export const createColumns = ({ getCreatedAt, onDelete, onDeletePrompt }) => {
                                         <ContextMenuSeparator />
                                     </>
                                 ) : null}
-                                <ContextMenuItem onClick={() => copyToClipboard(original.videoUrl)}>
+                                <ContextMenuItem
+                                    onClick={() => copyToClipboard(original.videoUrl || original.videoName)}
+                                >
                                     <Copy class="size-4" />
                                     {t('common.actions.copy')}
                                 </ContextMenuItem>

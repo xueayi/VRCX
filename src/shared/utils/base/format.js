@@ -42,7 +42,7 @@ function formatTimeUnit(value, unit) {
 function timeToText(sec, isNeedSeconds = false) {
     let n = Number(sec);
     if (isNaN(n)) {
-        return escapeTag(sec);
+        return escapeTag(String(sec));
     }
     n = Math.floor(n / 1000);
     const arr = [];
@@ -73,6 +73,13 @@ function timeToText(sec, isNeedSeconds = false) {
     return arr.join(' ');
 }
 
+const timeAgoUnits = [
+    [31536000, 'year', 2592000, 'month'],
+    [2592000, 'month', 86400, 'day'],
+    [86400, 'day', 3600, 'hour'],
+    [3600, 'hour', 60, 'min']
+];
+
 function timeAgo(datetime) {
     if (!datetime) {
         return '—';
@@ -93,51 +100,21 @@ function timeAgo(datetime) {
     if (n == 0) {
         return '—';
     }
-    if (n >= 31536000) {
-        const years = Math.floor(n / 31536000);
-        const months = Math.floor((n % 31536000) / 2592000);
-        const result = [formatTimeUnit(years, 'year')];
-        if (months > 0) {
-            result.push(formatTimeUnit(months, 'month'));
+    for (const [size, unit, subSize, subUnit] of timeAgoUnits) {
+        if (n >= size) {
+            const result = [formatTimeUnit(Math.floor(n / size), unit)];
+            const sub = Math.floor((n % size) / subSize);
+            if (sub > 0) {
+                result.push(formatTimeUnit(sub, subUnit));
+            }
+            return result.join(', ');
         }
-        return result.join(', ');
-    }
-    if (n >= 2592000) {
-        const months = Math.floor(n / 2592000);
-        const days = Math.floor((n % 2592000) / 86400);
-        const result = [formatTimeUnit(months, 'month')];
-        if (days > 0) {
-            result.push(formatTimeUnit(days, 'day'));
-        }
-        return result.join(', ');
-    }
-    if (n >= 86400) {
-        const days = Math.floor(n / 86400);
-        const hours = Math.floor((n % 86400) / 3600);
-        const result = [formatTimeUnit(days, 'day')];
-        if (hours > 0) {
-            result.push(formatTimeUnit(hours, 'hour'));
-        }
-        return result.join(', ');
-    }
-    if (n >= 3600) {
-        const hours = Math.floor(n / 3600);
-        const minutes = Math.floor((n % 3600) / 60);
-        const result = [formatTimeUnit(hours, 'hour')];
-        if (minutes > 0) {
-            result.push(formatTimeUnit(minutes, 'min'));
-        }
-        return result.join(', ');
     }
     if (n >= 60) {
-        const value = Math.floor(n / 60);
-        return `${value} ${getTimeUnitLabel(value === 1 ? 'min' : 'mins')}`;
+        return formatTimeUnit(Math.floor(n / 60), 'min');
     }
-    if (n < 60) {
-        // round to 5 seconds
-        n = Math.floor((n + 2.5) / 5) * 5;
-        return `${n} ${getTimeUnitLabel(n === 1 ? 'sec' : 'secs')}`;
-    }
+    // round to 5 seconds
+    return formatTimeUnit(Math.floor((n + 2.5) / 5) * 5, 'sec');
 }
 
 /**
@@ -148,12 +125,12 @@ function formatSeconds(duration) {
     const pad = function (num, size) {
             return `000${num}`.slice(size * -1);
         },
-        time = parseFloat(duration).toFixed(3),
+        time = Number(Number(duration).toFixed(3)),
         hours = Math.floor(time / 60 / 60),
         minutes = Math.floor(time / 60) % 60,
         seconds = Math.floor(time - minutes * 60);
     let hoursOut = '';
-    if (hours > '0') {
+    if (hours > 0) {
         hoursOut = `${pad(hours, 2)}:`;
     }
     return `${hoursOut + pad(minutes, 2)}:${pad(seconds, 2)}`;
@@ -183,13 +160,13 @@ function formatFileSize(bytes) {
 function convertYoutubeTime(duration) {
     let a = duration.match(/\d+/g);
     if (duration.indexOf('M') >= 0 && duration.indexOf('H') === -1 && duration.indexOf('S') === -1) {
-        a = [0, a[0], 0];
+        a = ['0', a[0], '0'];
     }
     if (duration.indexOf('H') >= 0 && duration.indexOf('M') === -1) {
-        a = [a[0], 0, a[1]];
+        a = [a[0], '0', a[1]];
     }
     if (duration.indexOf('H') >= 0 && duration.indexOf('M') === -1 && duration.indexOf('S') === -1) {
-        a = [a[0], 0, 0];
+        a = [a[0], '0', '0'];
     }
     let length = 0;
     if (a.length === 3) {

@@ -52,7 +52,7 @@ function applyThemeColorStyle(theme) {
     if (!styleEl) {
         styleEl = document.createElement('link');
         styleEl.id = THEME_COLOR_STYLE_ID;
-        styleEl.rel = 'stylesheet';
+        styleEl.setAttribute('rel', 'stylesheet');
         document.head.appendChild(styleEl);
     }
 
@@ -94,11 +94,17 @@ function useThemeColor() {
     };
 }
 
-/**
- * @returns {boolean}
- */
+let electronSystemIsDark = null;
+
 function systemIsDarkMode() {
+    if (electronSystemIsDark !== null) {
+        return electronSystemIsDark;
+    }
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function setSystemIsDarkMode(isDark) {
+    electronSystemIsDark = isDark;
 }
 
 function applyThemeFonts(themeKey, fontLinks = []) {
@@ -136,7 +142,7 @@ function applyThemeModeStyle(themeMode) {
     if (!styleEl) {
         styleEl = document.createElement('link');
         styleEl.id = THEME_MODE_STYLE_ID;
-        styleEl.rel = 'stylesheet';
+        styleEl.setAttribute('rel', 'stylesheet');
         document.head.appendChild(styleEl);
     }
 
@@ -238,7 +244,8 @@ function applyAppCjkFontPack(packKey) {
 }
 
 function changeAppThemeStyle(themeMode) {
-    if (themeMode === 'system') {
+    let isSystemMode = themeMode === 'system';
+    if (isSystemMode) {
         themeMode = systemIsDarkMode() ? 'dark' : 'light';
     }
 
@@ -247,6 +254,7 @@ function changeAppThemeStyle(themeMode) {
         // fallback to system
         console.error('Invalid theme mode:', themeMode);
         configRepository.setString('VRCX_ThemeMode', 'system');
+        isSystemMode = true;
         themeMode = systemIsDarkMode() ? 'dark' : 'light';
         themeConfig = THEME_CONFIG[themeMode];
     }
@@ -268,6 +276,10 @@ function changeAppThemeStyle(themeMode) {
         AppApi.ChangeTheme(1);
     } else {
         AppApi.ChangeTheme(0);
+    }
+
+    if (LINUX) {
+        window.electron?.setThemeSource(isSystemMode ? 'system' : themeConfig.isDark ? 'dark' : 'light');
     }
 
     return { isDark: themeConfig.isDark };
@@ -364,9 +376,6 @@ function HueToHex(hue, isDarkMode) {
  * @returns {string}
  */
 function HSVtoRGB(h, s, v) {
-    let r = 0;
-    let g = 0;
-    let b = 0;
     if (arguments.length === 1) {
         // @ts-ignore
         s = h.s;
@@ -380,43 +389,19 @@ function HSVtoRGB(h, s, v) {
     const p = v * (1 - s);
     const q = v * (1 - f * s);
     const t = v * (1 - (1 - f) * s);
-    switch (i % 6) {
-        case 0:
-            r = v;
-            g = t;
-            b = p;
-            break;
-        case 1:
-            r = q;
-            g = v;
-            b = p;
-            break;
-        case 2:
-            r = p;
-            g = v;
-            b = t;
-            break;
-        case 3:
-            r = p;
-            g = q;
-            b = v;
-            break;
-        case 4:
-            r = t;
-            g = p;
-            b = v;
-            break;
-        case 5:
-            r = v;
-            g = p;
-            b = q;
-            break;
-    }
-    const red = Math.round(r * 255);
-    const green = Math.round(g * 255);
-    const blue = Math.round(b * 255);
-    const decColor = 0x1000000 + blue + 0x100 * green + 0x10000 * red;
-    return `#${decColor.toString(16).substr(1)}`;
+    const rgb = [
+        [v, t, p],
+        [q, v, p],
+        [p, v, t],
+        [p, q, v],
+        [t, p, v],
+        [v, p, q]
+    ][i % 6] ?? [0, 0, 0];
+    const toHex = (c) =>
+        Math.round(c * 255)
+            .toString(16)
+            .padStart(2, '0');
+    return `#${rgb.map(toHex).join('')}`;
 }
 
 function formatJsonVars(ref) {
@@ -501,5 +486,6 @@ export {
     formatJsonVars,
     changeHtmlLangAttribute,
     getThemeMode,
+    setSystemIsDarkMode,
     redirectToToolsTab
 };

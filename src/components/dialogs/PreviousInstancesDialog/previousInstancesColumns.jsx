@@ -4,7 +4,7 @@ import DisplayName from '../../DisplayName.vue';
 import Location from '../../Location.vue';
 import LocationWorld from '../../LocationWorld.vue';
 import { Button } from '../../ui/button';
-import { i18n } from '../../../plugins';
+import { i18n } from '../../../plugins/i18n';
 import { formatDateFilter } from '../../../shared/utils';
 
 const { t } = i18n.global;
@@ -56,7 +56,7 @@ const timeColumn = () => ({
     cell: ({ row }) => <span>{row.original?.timer ?? ''}</span>
 });
 
-const actionsColumn = ({ shiftHeld, onShowInfo, onDelete, onDeletePrompt, onLaunch }) => ({
+const actionsColumn = ({ shiftHeld, onShowInfo, onDelete, onDeletePrompt, onLaunch = null }) => ({
     id: 'actions',
     enableSorting: false,
     size: onLaunch ? 140 : 120,

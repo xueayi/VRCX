@@ -30,7 +30,6 @@ import { usePhotonStore } from './photon';
 import { useSearchStore } from './search';
 import { useUpdateLoopStore } from './updateLoop';
 import { useUserStore } from './user';
-import { useVrcStatusStore } from './vrcStatus';
 import { clearVRCXCache } from '../coordinators/vrcxCoordinator';
 import { resetSearchIndexOnLogin } from '../coordinators/searchIndexCoordinator';
 import { watchState } from '../services/watchState';
@@ -50,7 +49,6 @@ export const useVrcxStore = defineStore('Vrcx', () => {
     const avatarProviderStore = useAvatarProviderStore();
     const gameLogStore = useGameLogStore();
     const updateLoopStore = useUpdateLoopStore();
-    const vrcStatusStore = useVrcStatusStore();
     const { t } = useI18n();
     const modalStore = useModalStore();
 
@@ -69,6 +67,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         toVersion: 0
     });
     const databaseReadyForAutoLogin = ref(false);
+    /** @type {(value?: unknown) => void} */
     let resolveDatabaseInit = () => {};
     const databaseInitComplete = new Promise((resolve) => {
         resolveDatabaseInit = resolve;
@@ -82,6 +81,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
     const searchLimit = ref(DEFAULT_SEARCH_LIMIT);
     const proxyServer = ref('');
     const appStartAt = Date.now();
+    const isBrowserFocused = ref(true);
 
     async function init() {
         try {
@@ -111,7 +111,11 @@ export const useVrcxStore = defineStore('Vrcx', () => {
                     });
 
                     window.electron.onBrowserFocus(() => {
-                        vrcStatusStore.onBrowserFocus();
+                        onBrowserFocus();
+                    });
+
+                    window.electron.onBrowserBlur(() => {
+                        onBrowserBlur();
                     });
                 } catch (err) {
                     console.error('Failed to register Linux IPC handlers:', err);
@@ -169,7 +173,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
 
     async function updateDatabaseVersion() {
         // requires dbVars.userPrefix to be already set
-        const databaseVersion = 17;
+        const databaseVersion = 18;
         if (state.databaseVersion < databaseVersion) {
             databaseUpgradeState.value = {
                 visible: state.databaseVersion > 0,
@@ -731,6 +735,15 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         await configRepository.setString('VRCX_VRChatRegistryLastBackupDate', date.toJSON());
     }
 
+    // ran from Cef and Electron when browser is focused
+    function onBrowserFocus() {
+        isBrowserFocused.value = true;
+    }
+
+    function onBrowserBlur() {
+        isBrowserFocused.value = false;
+    }
+
     return {
         state,
 
@@ -760,6 +773,9 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         dragEnterCef,
         backupVrcRegistry,
         updateDatabaseVersion,
-        waitForDatabaseInit
+        waitForDatabaseInit,
+        onBrowserFocus,
+        onBrowserBlur,
+        isBrowserFocused
     };
 });

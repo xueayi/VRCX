@@ -2,6 +2,7 @@
     "language": "Русский (ru)",
     "translator": "Ronner (Ronner231), like3ds, Sergey004",
     "nav_tooltip": {
+        "friends_locations": "Инстансы друзей",
         "feed": "Лента",
         "game_log": "Журнал игры",
         "player_list": "Список игроков",
@@ -69,7 +70,7 @@
             "search_placeholder": "Поиск",
             "filters": {
                 "Location": "Местоположение",
-                "OnPlayerJoined": "Игрог подключился",
+                "OnPlayerJoined": "Игрок подключился",
                 "OnPlayerLeft": "Игрок отключился",
                 "PortalSpawn": "Спавн портала",
                 "VideoPlay": "Проигрованние видео",
@@ -130,7 +131,6 @@
             "avatars": {
                 "search": "Поиск",
                 "vrchat_favorites": "Избранное VRChat",
-                "local_favorites": "Локальное избранное (требуется VRC+)",
                 "new_group": "Новая группа",
                 "cancel_refresh": "Отмена обновления"
             },
@@ -157,9 +157,9 @@
                 "Friend": "Новый друг",
                 "Unfriend": "Удалён из друзей",
                 "FriendRequest": "Запрос в друзья",
-                "CancelFriendRequest": "Отменйнные запросы в друзья",
-                "DisplayName": "Выводное имя",
-                "TrustLevel": "Уровнь доверия"
+                "CancelFriendRequest": "Отменённые запросы в друзья",
+                "DisplayName": "Отоброжаемое имя",
+                "TrustLevel": "Уровень доверия"
             }
         },
         "moderation": {
@@ -578,7 +578,6 @@
                 "edit_language": "Язык",
                 "edit_bio": "Био",
                 "edit_pronouns": "Местоимение",
-                "report_hacking": "Сообщить о взломе",
                 "unfriend": "Удалить из друзей",
                 "logout": "Выйти"
             },
@@ -990,7 +989,7 @@
             "legacy": "Устаревший",
             "roles": "Роли",
             "open_ingame": "Открыть в игре",
-            "display_name": "Отображаемое имя (VRC+)"
+            "display_name": "Отображаемое имя"
         },
         "launch": {
             "header": "Запустить",

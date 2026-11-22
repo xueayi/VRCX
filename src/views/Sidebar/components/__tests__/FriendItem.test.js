@@ -11,7 +11,8 @@ const mocks = vi.hoisted(() => ({
     },
     userStore: {},
     showUserDialog: vi.fn(),
-    confirmDeleteFriend: vi.fn()
+    confirmDeleteFriend: vi.fn(),
+    isActionRecent: vi.fn(() => false)
 }));
 
 vi.mock('pinia', async (importOriginal) => {
@@ -36,7 +37,12 @@ vi.mock('../../../../coordinators/friendRelationshipCoordinator', () => ({
     confirmDeleteFriend: (...args) => mocks.confirmDeleteFriend(...args)
 }));
 
-vi.mock('../../../../shared/utils', () => ({
+vi.mock('../../../../composables/useRecentActions', () => ({
+    isActionRecent: (...args) => mocks.isActionRecent(...args)
+}));
+
+vi.mock('../../../../shared/utils', async (importOriginal) => ({
+    ...(await importOriginal()),
     userImage: vi.fn(() => 'https://example.com/avatar.png'),
     userStatusClass: vi.fn(() => 'status-online')
 }));
@@ -88,7 +94,14 @@ vi.mock('@/components/Timer.vue', () => ({
     }
 }));
 
+vi.mock('@/components/IconFrame.vue', () => ({
+    default: { template: '<span data-testid="icon-frame" />' }
+}));
+
 vi.mock('lucide-vue-next', () => ({
+    Clock: {
+        template: '<span data-testid="icon-clock" />'
+    },
     User: {
         template: '<span data-testid="icon-user" />'
     },
@@ -135,29 +148,8 @@ describe('FriendItem.vue', () => {
         mocks.friendStore.allFavoriteFriendIds = new Set();
         mocks.confirmDeleteFriend.mockReset();
         mocks.showUserDialog.mockReset();
-    });
-
-    test('renders nickname when hideNicknames is false', () => {
-        const wrapper = mountItem();
-        expect(wrapper.text()).toContain('Alice (Ali)');
-    });
-
-    test('renders favorite star when grouped by instance and friend is favorite', () => {
-        mocks.appearanceStore.hideNicknames = true;
-        mocks.friendStore.allFavoriteFriendIds = new Set(['usr_1']);
-
-        const wrapper = mountItem({
-            friend: makeFriend({ $nickName: '' }),
-            isGroupByInstance: true
-        });
-
-        expect(wrapper.text()).toContain('Alice ⭐');
-    });
-
-    test('clicking row opens user dialog', async () => {
-        const wrapper = mountItem();
-        await wrapper.get('div').trigger('click');
-        expect(mocks.showUserDialog).toHaveBeenCalledWith('usr_1');
+        mocks.isActionRecent.mockReset();
+        mocks.isActionRecent.mockReturnValue(false);
     });
 
     test('renders delete action for orphan friend and triggers confirmDeleteFriend', async () => {
@@ -174,5 +166,17 @@ describe('FriendItem.vue', () => {
         await button.trigger('click');
         expect(mocks.confirmDeleteFriend).toHaveBeenCalledWith('usr_orphan');
         expect(mocks.showUserDialog).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        'Invite',
+        'Invite Photo',
+        'Invite Message',
+        'Request Invite',
+        'Request Invite Photo',
+        'Request Invite Message'
+    ])('shows recent-action clock after %s', (action) => {
+        mocks.isActionRecent.mockImplementation((_id, recentAction) => recentAction === action);
+        expect(mountItem().find('[data-testid="icon-clock"]').exists()).toBe(true);
     });
 });

@@ -176,6 +176,7 @@ export async function addGameLogEntry(gameLog, location) {
                 instanceStore.removeQueuedInstance(gameLog.location);
                 runUpdateCurrentUserLocationFlow();
                 gameLogStore.clearNowPlaying();
+                gameLogStore.resetNowPlayingProducers();
                 instanceStore.updateCurrentInstanceWorld();
                 userStore.applyUserDialogLocation();
                 instanceStore.applyWorldDialogInstances();
@@ -188,6 +189,7 @@ export async function addGameLogEntry(gameLog, location) {
             if (gameStore.isGameRunning) {
                 await runLastLocationResetFlow(gameLog.dt);
                 gameLogStore.clearNowPlaying();
+                gameLogStore.resetNowPlayingProducers();
                 locationStore.setLastLocation({
                     date: Date.parse(gameLog.dt),
                     location: gameLog.location,
@@ -227,6 +229,7 @@ export async function addGameLogEntry(gameLog, location) {
                 // skip
             } else if (friendStore.friends.has(userId) && typeof ref !== 'undefined') {
                 locationStore.lastLocation.friendList.set(userId, userMap);
+                friendStore.updateFriendLastSeen(userId, gameLog.dt);
                 if (
                     ref.location !== locationStore.lastLocation.location &&
                     ref.travelingToLocation !== locationStore.lastLocation.location
@@ -252,9 +255,10 @@ export async function addGameLogEntry(gameLog, location) {
             if (typeof ref1 === 'undefined') {
                 break;
             }
-            const time = dayjs(gameLog.dt) - ref1.joinTime;
+            const time = dayjs(gameLog.dt).valueOf() - ref1.joinTime;
             locationStore.lastLocation.playerList.delete(userId);
             locationStore.lastLocation.friendList.delete(userId);
+            friendStore.updateFriendLastSeen(userId, gameLog.dt);
             gameLogStore.state.lastLocationAvatarList.delete(gameLog.displayName);
             photonStore.photonLobbyAvatars.delete(userId);
             vrStore.updateVRLastLocation();
@@ -269,7 +273,13 @@ export async function addGameLogEntry(gameLog, location) {
             entry = createPortalSpawnEntry(gameLog.dt, location);
             persistedEntryPromise = database.addGamelogPortalSpawnToDatabase(entry);
             break;
+        case 'nowplaying':
+            await gameLogStore.handleNowPlayingEvent(gameLog, location);
+            break;
         case 'video-play':
+            if (gameLogStore.hasNowPlayingProducer()) {
+                break;
+            }
             gameLog.videoUrl = decodeURI(gameLog.videoUrl);
             if (gameLogStore.lastVideoUrl === gameLog.videoUrl) {
                 break;
@@ -335,12 +345,8 @@ export async function addGameLogEntry(gameLog, location) {
             break;
         case 'vrcx':
             const type = gameLog.data.substr(0, gameLog.data.indexOf(' '));
-            if (type === 'VideoPlay(PyPyDance)') {
-                await gameLogStore.addGameLogPyPyDance(gameLog, location);
-            } else if (type === 'VideoPlay(VRDancing)') {
+            if (type === 'VideoPlay(VRDancing)') {
                 await gameLogStore.addGameLogVRDancing(gameLog, location);
-            } else if (type === 'VideoPlay(ZuwaZuwaDance)') {
-                await gameLogStore.addGameLogZuwaZuwaDance(gameLog, location);
             } else if (type === 'LSMedia') {
                 await gameLogStore.addGameLogLSMedia(gameLog, location);
             } else if (type === 'VideoPlay(PopcornPalace)') {
@@ -380,6 +386,9 @@ export async function addGameLogEntry(gameLog, location) {
                 data: gameLog.event
             };
             persistedEntryPromise = database.addGamelogEventToDatabase(entry);
+            if (gameStore.isGameRunning && gameLog.event.startsWith('VideoError: ')) {
+                checkYoutubeBotError(gameLog.event);
+            }
             break;
         case 'vrc-quit':
             if (!gameStore.isGameRunning) {
@@ -438,13 +447,63 @@ export async function addGameLogEntry(gameLog, location) {
     }
 }
 
+let youtubeBotErrorPrompted = false;
+
 /**
- * Parses raw game log JSON and delegates to addGameLogEntry.
+ * @param {string} videoError
+ */
+async function checkYoutubeBotError(videoError) {
+    if (youtubeBotErrorPrompted || !videoError.includes('Sign in to confirm')) {
+        return;
+    }
+    youtubeBotErrorPrompted = true;
+    if (await configRepository.getBool('VRCX_hideYoutubeBotErrorPrompt', false)) {
+        return;
+    }
+    const t = i18n.global.t;
+    const { ok, checked } = await useModalStore().confirm({
+        description: t('confirm.youtube_bot_error'),
+        title: t('confirm.youtube_bot_error_title'),
+        checkboxLabel: t('dialog.alertdialog.dont_show_again')
+    });
+    if (checked) {
+        configRepository.setBool('VRCX_hideYoutubeBotErrorPrompt', true);
+    }
+    if (ok) {
+        AppApi.OpenSteamStorePage(4296960);
+    }
+}
+
+let gameLogQueue = Promise.resolve();
+
+/**
+ * Runs game log work one task at a time, in call order.
+ *
+ * @param {() => Promise<void>} task
+ * @returns {Promise<void>}
+ */
+function enqueueGameLogTask(task) {
+    gameLogQueue = gameLogQueue.then(task).catch(console.error);
+    return gameLogQueue;
+}
+
+/**
+ * Queues raw game log JSON so entries are processed in order.
  * Called from C# / updateLoop.
  *
  * @param {string} json
+ * @returns {Promise<void>}
  */
-export async function addGameLogEvent(json) {
+export function addGameLogEvent(json) {
+    return enqueueGameLogTask(() => processGameLogEvent(json));
+}
+
+/**
+ * Parses raw game log JSON and delegates to addGameLogEntry.
+ *
+ * @param {string} json
+ */
+async function processGameLogEvent(json) {
     const locationStore = useLocationStore();
 
     const rawLogs = JSON.parse(json);
@@ -478,13 +537,15 @@ async function updateGameLog(dateTill) {
     await new Promise((resolve) => {
         workerTimers.setTimeout(resolve, 10000);
     });
-    let location = '';
-    for (const gameLog of await gameLogService.getAll()) {
-        if (gameLog.type === 'location') {
-            location = gameLog.location;
+    await enqueueGameLogTask(async () => {
+        let location = '';
+        for (const gameLog of await gameLogService.getAll()) {
+            if (gameLog.type === 'location') {
+                location = gameLog.location;
+            }
+            await addGameLogEntry(gameLog, location);
         }
-        await addGameLogEntry(gameLog, location);
-    }
+    });
 }
 
 /**

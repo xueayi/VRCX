@@ -19,8 +19,8 @@ export function sanitizeEntityJson(json, fields) {
 /**
  * Build a default favorite group ref from JSON data.
  *
- * @param {object} json
- * @returns {object}
+ * @param {Partial<import('@/types/vrcx').Json<import('vrchat').FavoriteGroup>>} json
+ * @returns {import('@/types/vrcx').Json<import('vrchat').FavoriteGroup>}
  */
 export function createDefaultFavoriteGroupRef(json) {
     return {
@@ -29,8 +29,8 @@ export function createDefaultFavoriteGroupRef(json) {
         ownerDisplayName: '',
         name: '',
         displayName: '',
-        type: '',
-        visibility: '',
+        type: 'friend',
+        visibility: 'private',
         tags: [],
         ...json
     };
@@ -40,13 +40,14 @@ export function createDefaultFavoriteGroupRef(json) {
  * Build a default cached favorite ref from JSON data.
  * Computes $groupKey from type and first tag.
  *
- * @param {object} json
- * @returns {object}
+ * @param {Partial<import('@/types/vrcx').VrcxFavorite>} json
+ * @returns {import('@/types/vrcx').VrcxFavorite}
  */
 export function createDefaultFavoriteCachedRef(json) {
+    /** @type {import('@/types/vrcx').VrcxFavorite} */
     const ref = {
         id: '',
-        type: '',
+        type: 'friend',
         favoriteId: '',
         tags: [],
         // VRCX

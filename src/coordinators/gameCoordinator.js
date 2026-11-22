@@ -61,6 +61,7 @@ export async function runGameRunningChangedFlow(isGameRunning) {
 
     await runLastLocationResetFlow();
     gameLogStore.clearNowPlaying();
+    gameLogStore.resetNowPlayingProducers();
     vrStore.updateVRLastLocation();
     workerTimers.setTimeout(() => runCheckVRChatDebugLoggingFlow(), 60000);
     updateLoopStore.setNextDiscordUpdate(0);
@@ -235,7 +236,7 @@ export async function runCheckVRChatDebugLoggingFlow() {
             // key not found
             return;
         }
-        if (parseInt(loggingEnabled, 10) === 1) {
+        if (parseInt(String(loggingEnabled), 10) === 1) {
             // already enabled
             return;
         }

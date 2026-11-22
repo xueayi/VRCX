@@ -1,8 +1,8 @@
 /**
  * Create a default group ref object.
  *
- * @param {object} json - API response to merge
- * @returns {object}
+ * @param {Partial<import('@/types/vrcx').VrcxGroup>} json - API response to merge
+ * @returns {import('@/types/vrcx').VrcxGroup}
  */
 export function createDefaultGroupRef(json) {
     return {
@@ -18,17 +18,27 @@ export function createDefaultGroupRef(json) {
         iconId: '',
         iconUrl: '',
         isVerified: false,
-        joinState: '',
+        joinState: 'closed',
         languages: [],
         links: [],
         memberCount: 0,
         memberCountSyncedAt: '',
-        membershipStatus: '',
+        membershipStatus: 'inactive',
         onlineMemberCount: 0,
         ownerId: '',
-        privacy: '',
+        privacy: 'default',
         rules: null,
         tags: [],
+        ageVerificationBetaCode: '',
+        ageVerificationBetaSlots: 0,
+        ageVerificationSlotsAvailable: false,
+        allowGroupJoinPrompt: false,
+        badges: [],
+        lastPostCreatedAt: '',
+        nameplateId: null,
+        nameplateUrl: null,
+        storeId: '',
+        transferTargetId: '',
         // in group
         initialRoleIds: [],
         myMember: {
@@ -41,14 +51,11 @@ export function createDefaultGroupRef(json) {
             isSubscribedToEventAnnouncements: false,
             joinedAt: '',
             managerNotes: '',
-            membershipStatus: '',
+            membershipStatus: 'inactive',
             permissions: [],
             roleIds: [],
             userId: '',
-            visibility: '',
-            _created_at: '',
-            _id: '',
-            _updated_at: ''
+            visibility: ''
         },
         updatedAt: '',
         // includeRoles: true

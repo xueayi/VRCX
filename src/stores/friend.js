@@ -14,7 +14,6 @@ import { getUserMemo } from '../coordinators/memoCoordinator';
 import { friendRequest, userRequest } from '../api';
 import { runInitFriendsListFlow } from '../coordinators/friendSyncCoordinator';
 import { runPendingOfflineTickFlow, runUpdateFriendFlow } from '../coordinators/friendPresenceCoordinator';
-import { syncFriendSearchIndex } from '../coordinators/searchIndexCoordinator';
 import { updateFriendship, runUpdateFriendshipsFlow } from '../coordinators/friendRelationshipCoordinator';
 import { applyUser } from '../coordinators/userCoordinator';
 import { AppDebug } from '../services/appConfig';
@@ -248,7 +247,7 @@ export const useFriendStore = defineStore('Friend', () => {
 
     const friendLogTable = ref({
         data: [],
-        filters: [
+        filters: /** @type {import('@/types/vrcx').TableFilter[]} */ ([
             {
                 prop: 'type',
                 value: []
@@ -262,7 +261,7 @@ export const useFriendStore = defineStore('Friend', () => {
                 value: false,
                 filterFn: (row, filter) => !(filter.value && row.type === 'Unfriend')
             }
-        ],
+        ]),
         pageSizeLinked: true,
         loading: false
     });
@@ -496,22 +495,11 @@ export const useFriendStore = defineStore('Friend', () => {
             isVIP,
             ref,
             name,
-            memo: '',
             pendingOffline: false,
             $nickName: ''
         });
         if (watchState.isFriendsLoaded) {
-            getUserMemo(id).then((memo) => {
-                if (memo.userId === id) {
-                    ctx.memo = memo.memo;
-                    ctx.$nickName = '';
-                    if (memo.memo) {
-                        const array = memo.memo.split('\n');
-                        ctx.$nickName = array[0];
-                    }
-                    syncFriendSearchIndex(ctx);
-                }
-            });
+            getUserMemo(id);
         }
         if (typeof ref === 'undefined') {
             const friendLogRef = friendLog.get(id);
@@ -807,6 +795,19 @@ export const useFriendStore = defineStore('Friend', () => {
                 }
             }
         });
+    }
+
+    /**
+     * @param {string} userId
+     * @param {string} lastSeen
+     */
+    function updateFriendLastSeen(userId, lastSeen) {
+        const ctx = friends.get(userId);
+        if (!ctx?.ref || !lastSeen) {
+            return;
+        }
+        ctx.ref.$lastSeen = lastSeen;
+        reindexSortedFriend(ctx);
     }
 
     async function getAllUserMutualCount() {
@@ -1289,6 +1290,7 @@ export const useFriendStore = defineStore('Friend', () => {
         refreshFriends,
         updateOnlineFriendCounter,
         getAllUserStats,
+        updateFriendLastSeen,
         getAllUserMutualCount,
         getAllUserMutualOptedOut,
         initFriendLog,

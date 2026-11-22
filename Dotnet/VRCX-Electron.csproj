@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <Configurations>Debug;Release</Configurations>
     <Platforms>x64;ARM64</Platforms>
-    <RuntimeIdentifiers>linux-x64;linux-arm64;win-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;win-x64;win-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.*</ApplicationVersion>
     <ApplicationIcon>..\images\VRCX.ico</ApplicationIcon>
@@ -65,28 +65,28 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.27" />
-    <PackageReference Include="Microsoft.JavaScript.NodeApi.Generator" Version="0.9.27" />
+    <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.31" />
+    <PackageReference Include="Microsoft.JavaScript.NodeApi.Generator" Version="0.9.31" />
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="NLog" Version="6.2.1" />
+    <PackageReference Include="NLog" Version="6.2.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
     <PackageReference Include="SourceGear.sqlite3" Version="3.53.4" />
+
     <!-- pinned: SSH.NET 2025+ binds Microsoft.Extensions.Logging.Abstractions
          8.0.0.0 while Websocket.Client unifies the bundled DLL to 10.x and this
          host does no deps.json unification, so the load fails at runtime. The
          two 2024.2.0 advisories (GHSA-mggc-4xg6-vcxf / GHSA-q939-rpr3-3284)
          affect ScpClient only, which RemoteHostClient never uses. -->
     <PackageReference Include="SSH.NET" Version="2024.2.0" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
-    <!-- System.Data.SQLite 1.x ships native interop only for win-x86/x64, linux-x64
-         and osx-x64; the 2.x line P/Invokes e_sqlite3 from SourceGear.sqlite3, which
-         has native binaries for linux-arm64 and osx-arm64 -->
-    <PackageReference Condition="'$(RuntimeIdentifier)'=='linux-arm64' Or '$(RuntimeIdentifier)'=='osx-arm64'" Include="System.Data.SQLite" Version="2.0.3" />
-    <PackageReference Condition="'$(RuntimeIdentifier)'!='linux-arm64' And '$(RuntimeIdentifier)'!='osx-arm64'" Include="System.Data.SQLite" Version="1.0.119" />
+
+    <PackageReference Include="System.Drawing.Common" Version="10.0.13" />
+    <PackageReference Condition="'$(RuntimeIdentifier)'=='linux-x64'" Include="System.Data.SQLite" Version="1.0.119" />
+    <PackageReference Condition="'$(RuntimeIdentifier)'!='linux-x64'" Include="System.Data.SQLite" Version="2.0.4" />
+
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
-    <PackageReference Include="System.Management" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="10.0.13" />
     <PackageReference Include="Websocket.Client" Version="5.5.1" />
   </ItemGroup>
 

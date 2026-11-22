@@ -1,8 +1,8 @@
 /**
  * Create a default world ref object.
  *
- * @param {object} json - API response to merge
- * @returns {object}
+ * @param {Partial<import('@/types/vrcx').VrcxWorld>} json - API response to merge
+ * @returns {import('@/types/vrcx').VrcxWorld}
  */
 export function createDefaultWorldRef(json) {
     return {
@@ -11,20 +11,15 @@ export function createDefaultWorldRef(json) {
         description: '',
         defaultContentSettings: {},
         disabledPropAbilities: [],
+        supportedPlatforms: [],
         authorId: '',
         authorName: '',
         capacity: 0,
         recommendedCapacity: 0,
         tags: [],
-        releaseStatus: '',
+        releaseStatus: 'private',
         imageUrl: '',
         thumbnailImageUrl: '',
-        assetUrl: '',
-        assetUrlObject: {},
-        pluginUrl: '',
-        pluginUrlObject: {},
-        unityPackageUrl: '',
-        unityPackageUrlObject: {},
         unityPackages: [],
         version: 0,
         favorites: 0,
@@ -42,6 +37,12 @@ export function createDefaultWorldRef(json) {
         featured: false,
         organization: '',
         previewYoutubeId: '',
+        isHypeTrainEligible: false,
+        namespace: '',
+        slimInstances: [],
+        storeId: '',
+        udonProducts: [],
+        urlList: [],
         // VRCX
         $isLabs: false,
         //

@@ -2,7 +2,7 @@ import { removeEmojis, replaceBioSymbols } from './base/string';
 
 /**
  * Sanitize user JSON fields before applying to cache.
- * Applies replaceBioSymbols to statusDescription, bio, note;
+ * Applies replaceBioSymbols to statusDescription, note;
  * removeEmojis to statusDescription;
  * strips robot avatar URL.
  *
@@ -14,9 +14,6 @@ export function sanitizeUserJson(json, robotUrl) {
     if (json.statusDescription) {
         json.statusDescription = replaceBioSymbols(json.statusDescription);
         json.statusDescription = removeEmojis(json.statusDescription);
-    }
-    if (json.bio) {
-        json.bio = replaceBioSymbols(json.bio);
     }
     if (json.note) {
         json.note = replaceBioSymbols(json.note);
@@ -175,50 +172,51 @@ export function diffObjectProps(ref, json, arraysMatchFn) {
  * Create a default user ref object with all expected fields.
  * Returns a plain object (caller wraps in reactive() if needed).
  *
- * @param {object} json - API response to merge
- * @returns {object} Default user object with json spread on top
+ * @param {Partial<import('@/types/vrcx').VrcxUser>} json - API response to merge
+ * @returns {import('@/types/vrcx').VrcxUser} Default user object with json spread on top
  */
 export function createDefaultUserRef(json) {
     return {
-        ageVerificationStatus: '',
+        acceptedPrivacyVersion: 0,
+        acceptedTOSVersion: 0,
+        accountDeletionDate: null,
+        accountDeletionLog: null,
+        ageVerificationStatus: 'hidden',
         ageVerified: false,
         allowAvatarCopying: false,
-        badges: [],
-        bio: '',
-        bioLinks: [],
-        currentAvatarImageUrl: '',
-        currentAvatarTags: [],
-        currentAvatarThumbnailImageUrl: '',
+        appleDetails: {},
+        bannerColor: '',
+        bannerUrl: '',
         date_joined: '',
-        developerType: '',
+        developerType: 'none',
         discordId: '',
         displayName: '',
         friendKey: '',
         friendRequestStatus: '',
+        iconFrame: '',
+        iconUrl: '',
         id: '',
         instanceId: '',
+        isEconomyCreator: false,
         isFriend: false,
         last_activity: '',
         last_login: '',
         last_mobile: null,
         last_platform: '',
         location: '',
+        nameplateEffect: '',
         platform: '',
         note: null,
-        profilePicOverride: '',
-        profilePicOverrideThumbnail: '',
+        profileEffect: '',
         pronouns: '',
         state: '',
-        status: '',
+        status: 'offline',
         statusDescription: '',
         tags: [],
         travelingToInstance: '',
         travelingToLocation: '',
         travelingToWorld: '',
-        userIcon: '',
         worldId: '',
-        // only in bulk request
-        fallbackAvatar: '',
         // VRCX
         $location: {},
         $location_at: Date.now(),
@@ -241,12 +239,18 @@ export function createDefaultUserRef(json) {
         $mutualCount: 0,
         $mutualOptedOut: false,
         $nickName: '',
+        $memo: '',
         $previousLocation: '',
         $customTag: '',
         $customTagColour: '',
         $friendNumber: 0,
         $platform: '',
-        $moderations: {},
+        $moderations: {
+            isBlocked: false,
+            isMuted: false,
+            isAvatarInteractionDisabled: false,
+            isChatBoxMuted: false
+        },
         //
         ...json
     };
