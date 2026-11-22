@@ -356,12 +356,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: 'VRCX ${{ needs.set_version.outputs.version }} — community build with Linux/macOS memory-leak fixes'
+          name: 'VRCX ${{ needs.set_version.outputs.version }} — community build'
           prerelease: false
           body: |
             **Unofficial community build** of [vrcx-team/VRCX](https://github.com/vrcx-team/VRCX) with Linux/macOS memory-leak fixes and mac arm64 startup fixes. **Not signed or notarized by Apple.**
 
-            **非官方社区构建**，基于上游 2026.09.16，包含 Linux/macOS 内存泄漏修复与 mac arm64 启动修复。**未经 Apple 签名与公证。**
+            **非官方社区构建**，包含上游更新、Linux/macOS 内存泄漏修复和远程 VRChat 主机支持。**未经 Apple 签名与公证。**
 
             ---
 
@@ -380,10 +380,12 @@ jobs:
 
             ## Windows
 
-            Setup.exe 使用 Azure Trusted Signing 签名（与上游一致）。
+            Setup.exe 仅在配置了签名凭证时签名。
 
             ## 修复内容 / Fixes in this build
 
+            - 同步上游更新，包括实例、图库和通知等改进
+            - 支持通过 SSH/SFTP 读取远程 VRChat 主机日志
             - LogWatcher 游戏日志、VR overlay 函数队列、通知表、gallery 定时器、photon 事件表等多处内存泄漏（长驻托盘场景数十 MB/天的增长）
             - macOS arm64 启动即崩（缺少 SQLite 原生库）与 .NET 宿主路径补丁缺失
             - macOS 原生 VRChat 进程检测、进程扫描节流；Linux 重启后共享内存泄漏
