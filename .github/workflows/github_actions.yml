@@ -330,15 +330,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs:
-      [
-        set_version,
-        build_dotnet_windows,
-        build_dotnet_linux,
-        build_dotnet_macos,
-        build_node,
-        build_macos,
-        create_setup
-      ]
+      [set_version, build_dotnet_windows, build_dotnet_linux, build_dotnet_macos, build_node, build_macos, create_setup]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
@@ -385,6 +377,7 @@ jobs:
             ## 修复内容 / Fixes in this build
 
             - 同步上游更新，包括实例、图库和通知等改进
+            - 支持显示好友最后已知位置，可配置开关和有效期（基于上游 PR #1902）
             - 支持通过 SSH/SFTP 读取远程 VRChat 主机日志
             - LogWatcher 游戏日志、VR overlay 函数队列、通知表、gallery 定时器、photon 事件表等多处内存泄漏（长驻托盘场景数十 MB/天的增长）
             - macOS arm64 启动即崩（缺少 SQLite 原生库）与 .NET 宿主路径补丁缺失

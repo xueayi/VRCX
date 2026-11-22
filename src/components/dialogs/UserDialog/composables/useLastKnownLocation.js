@@ -108,11 +108,9 @@ export function useLastKnownLocation({ userDialog, currentUser, isEnabled, maxAg
         }
     });
 
-    watch(
-        () => [shouldLookup.value, unref(userDialog)?.id, unref(userDialog)?.$location?.tag],
-        load,
-        { immediate: true }
-    );
+    watch(() => [shouldLookup.value, unref(userDialog)?.id, unref(userDialog)?.$location?.tag], load, {
+        immediate: true
+    });
 
     return { lastKnownLocation: visibleLocation, isLoading };
 }

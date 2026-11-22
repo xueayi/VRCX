@@ -949,7 +949,6 @@
                     "status_error": "错误：{message}",
                     "game_running": "运行中",
                     "game_stopped": "未运行"
-
                 }
             },
             "appearance": {
@@ -1567,7 +1566,6 @@
                 "economy_creator": "商业创作者",
                 "instance_announcement_tooltip": "发送房间公告",
                 "instance_calendar_link_tooltip": "分配群组事件"
-
             },
             "groups": {
                 "header": "群组",

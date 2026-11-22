@@ -1,4 +1,4 @@
-import { computed, defineComponent, h, ref } from 'vue';
+import { computed, defineComponent, h, nextTick, ref } from 'vue';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 
@@ -187,6 +187,46 @@ describe('useLastKnownLocation', () => {
 
         expect(api().lastKnownLocation.value).not.toBeNull();
         wrapper.unmount();
+    });
+
+    test('ignores a late result after switching to another user', async () => {
+        let resolveFirst;
+        getLastKnownGPSLocation.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirst = resolve;
+                })
+        );
+        getLastKnownGPSLocation.mockResolvedValueOnce(gpsRow({ worldName: 'Second World' }));
+        const userDialog = ref(hiddenUser());
+        const { wrapper, api } = mountComposable({
+            userDialog,
+            currentUser: ref({ id: 'usr_me' }),
+            isEnabled: ref(true),
+            maxAgeMinutes: ref('60')
+        });
+        userDialog.value = hiddenUser({ id: 'usr_second' });
+        await flushPromises();
+        resolveFirst(gpsRow({ worldName: 'First World' }));
+        await flushPromises();
+        expect(api().lastKnownLocation.value.worldName).toBe('Second World');
+        wrapper.unmount();
+    });
+
+    test('removes the location when its maximum age elapses while open', async () => {
+        vi.useFakeTimers();
+        try {
+            getLastKnownGPSLocation.mockResolvedValue(gpsRow({ createdAt: minutesAgo(59) }));
+            const { wrapper, api } = mountFor(hiddenUser());
+            await Promise.resolve();
+            await nextTick();
+            expect(api().lastKnownLocation.value).not.toBeNull();
+            await vi.advanceTimersByTimeAsync(60_000);
+            expect(api().lastKnownLocation.value).toBeNull();
+            wrapper.unmount();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     test('surfaces a failed query as no location', async () => {
